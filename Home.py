@@ -11,7 +11,7 @@ import pandas as pd
 KB = 1.0 
 
 # ----------------------------------------
-# FUNGSI-FUNGSI UTILITY & PERHITUNGAN
+# FUNGSI-FUNGSI UTILITY & PERHITUNGAN (TIDAK BERUBAH)
 # ----------------------------------------
 def nCr(n, r):
     """Menghitung nCr (n choose r) secara aman."""
@@ -147,6 +147,37 @@ def parse_int_list(txt):
 st.set_page_config(layout="wide")
 st.title(" Simulator Statistik Terpadu")
 
+# ====== BLOK PANDUAN SELAMAT DATANG BARU ======
+
+# Memisahkan title dari konten
+if not st.session_state.get('app_started'):
+    st.markdown("""
+        Selamat datang di **Simulator Statistik Terpadu**!
+        
+        Aplikasi ini dirancang untuk memvisualisasikan Macrostate, Microstate, Entropi ($S$),
+        dan Probabilitas ($P$) untuk sistem kuantum dasar (MB, BE, FD).
+    """)
+    
+    st.subheader("Petunjuk Penggunaan Cepat:")
+    
+    st.markdown("""
+    1.  **Konfigurasi Sistem (Sidebar Kiri):** Pilih Statistik, masukkan **N** (jumlah partikel), dan tentukan **Level Energi Unik** serta **Degenerasi ($g_i$)**.
+    2.  **Pilih Mode Analisis:**
+        * **Mode Umum:** Biarkan semua kotak centang di sidebar nonaktif untuk mendapatkan $\Omega$ dan $M$ total berdasarkan $N$ dan $g$.
+        * **Makrostate Otomatis:** Aktifkan kotak centang ini dan masukkan $E_{\\text{total}}$ untuk mencari semua solusi $n_i$ yang mungkin.
+        * **Plot Kerapatan Keadaan:** Aktifkan kotak centang ini untuk memvisualisasikan Microstate total ($\Omega$) untuk **semua** kemungkinan energi.
+    3.  **Mulai:** Klik tombol **"Hitung 🚀"** di bagian bawah sidebar untuk melihat hasil di area ini.
+    """)
+    
+    st.warning("Pastikan jumlah level energi dan degenerasi ($g_i$) yang dimasukkan konsisten.")
+
+# Mengatur state untuk menghilangkan panduan setelah tombol ditekan
+if 'app_started' not in st.session_state:
+    st.session_state['app_started'] = False
+
+# ====== END OF BLOK PANDUAN SELAMAT DATANG BARU ======
+
+
 # --- SIDEBAR (KONFIGURASI) ---
 st.sidebar.header("1. Konfigurasi Sistem ⚙️")
 
@@ -220,6 +251,9 @@ do = st.sidebar.button("Hitung 🚀")
 # MAIN COMPUTATION & OUTPUT
 # ----------------------------------------
 if do:
+    # Set state agar panduan selamat datang hilang
+    st.session_state['app_started'] = True 
+    
     # --- Mode Nx ---
     if mode_nx:
         E_levels = parse_energy_text(energy_levels_text)
