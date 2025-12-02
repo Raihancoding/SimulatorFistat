@@ -8,10 +8,10 @@ import matplotlib.pyplot as plt
 import pandas as pd
 
 # Diasumsikan Konstanta Boltzmann k_B = 1 untuk perbandingan nilai
-KB = 1.0 
+KB = 1.0
 
 # ----------------------------------------
-# FUNGSI-FUNGSI UTILITY & PERHITUNGAN (TIDAK BERUBAH)
+# FUNGSI-FUNGSI UTILITY & PERHITUNGAN (DIJAMIN ASLI DARI ANDA)
 # ----------------------------------------
 def nCr(n, r):
     """Menghitung nCr (n choose r) secara aman."""
@@ -23,7 +23,7 @@ def nCr(n, r):
 def microstates_MB(N, g): return g**N
 def microstates_BE(N, g): return nCr(N + g - 1, N)
 def microstates_FD(N, g): return 0 if N > g else nCr(g, N)
-def macrostates_MB(N, g): return nCr(N + g - 1, N) 
+def macrostates_MB(N, g): return nCr(N + g - 1, N)
 def macrostates_BE(N, g): return microstates_BE(N, g)
 def macrostates_FD(N, g): return microstates_FD(N, g)
 
@@ -60,18 +60,18 @@ def find_macrostates(N, E_levels, E_total):
             if remN == 0 and remE == 0:
                 results.append(current.copy())
             return
-        
+
         max_n = remN
-        
+
         for n in range(max_n + 1):
             neededE = n * E_levels[i]
             if neededE > remE:
                 break
-            
+
             current.append(n)
             backtrack(i + 1, remN - n, remE - neededE, current)
             current.pop()
-            
+
     backtrack(0, N, E_total, [])
     return results
 
@@ -79,23 +79,23 @@ def find_macrostates(N, E_levels, E_total):
 def analyze_all_energy_states(N, E_levels_int, g_levels_search, stat_mode):
     if not E_levels_int or N <= 0:
         return None, 0, 0
-    
+
     E_min = N * min(E_levels_int)
     E_max = N * max(E_levels_int)
-    
-    energy_density = {} 
-    
+
+    energy_density = {}
+
     for E_total in range(E_min, E_max + 1):
         macrostates = find_macrostates(N, E_levels_int, E_total)
-        
+
         total_W = 0
         for macro in macrostates:
             g_used = g_levels_search
             if len(g_used) < len(macro): g_used = (g_levels_search + [1] * (len(macro) - len(g_levels_search)))
             elif len(g_used) > len(macro): g_used = g_used[:len(macro)]
-            
+
             W_macro = 0
-            
+
             # Hitung W Macrostate sesuai statistik yang dipilih
             if stat_mode == "Maxwell–Boltzmann":
                 numerator = factorial(N)
@@ -117,17 +117,17 @@ def analyze_all_energy_states(N, E_levels_int, g_levels_search, stat_mode):
                         W_macro *= nCr(gi, ni)
                 else:
                     W_macro = 0
-            
+
             total_W += W_macro
-        
+
         if total_W > 0:
             energy_density[E_total] = total_W
 
     return energy_density, E_min, E_max
 
-# ATOM_DATA 
+# ATOM_DATA
 ATOM_DATA = {
-    "H": [(0, 2)], "He": [(0, 2), (2, 4)], 
+    "H": [(0, 2)], "He": [(0, 2), (2, 4)],
     "Uranium": [(0, 2), (1, 2), (2, 4), (3, 4), (4, 6), (5, 6), (6, 8), (7, 8)]
 }
 
@@ -153,13 +153,13 @@ st.title(" Simulator Statistik Terpadu")
 if not st.session_state.get('app_started'):
     st.markdown("""
         Selamat datang di **Simulator Statistik Terpadu**!
-        
+
         Aplikasi ini dirancang untuk memvisualisasikan Macrostate, Microstate, Entropi ($S$),
         dan Probabilitas ($P$) untuk sistem kuantum dasar (MB, BE, FD).
     """)
-    
+
     st.subheader("Petunjuk Penggunaan Cepat:")
-    
+
     st.markdown("""
     1.  **Konfigurasi Sistem (Sidebar Kiri):** Pilih Statistik, masukkan **N** (jumlah partikel), dan tentukan **Level Energi Unik** serta **Degenerasi ($g_i$)**.
     2.  **Pilih Mode Analisis:**
@@ -168,7 +168,7 @@ if not st.session_state.get('app_started'):
         * **Plot Kerapatan Keadaan:** Aktifkan kotak centang ini untuk memvisualisasikan Microstate total ($\Omega$) untuk **semua** kemungkinan energi.
     3.  **Mulai:** Klik tombol **"Hitung 🚀"** di bagian bawah sidebar untuk melihat hasil di area ini.
     """)
-    
+
     st.warning("Pastikan jumlah level energi dan degenerasi ($g_i$) yang dimasukkan konsisten.")
 
 # Mengatur state untuk menghilangkan panduan setelah tombol ditekan
@@ -252,7 +252,16 @@ do = st.sidebar.button("Hitung 🚀")
 # ----------------------------------------
 if do:
     # Set state agar panduan selamat datang hilang
-    st.session_state['app_started'] = True 
+    st.session_state['app_started'] = True
+
+    # Inisialisasi variabel di awal blok do
+    micro_list = None
+    total = 0
+    W = 0
+    M = 0
+    levels = []
+    distrib = []
+    macro_results = []
     
     # --- Mode Nx ---
     if mode_nx:
@@ -263,9 +272,9 @@ if do:
         if E_levels is None or g_levels is None or Nx_list is None or not (len(E_levels) == len(g_levels) == len(Nx_list)):
             st.error("Input mode Nx salah atau panjangnya tidak sama.")
             st.stop()
-            
+
         N_total = sum(Nx_list)
-        
+
         # Hitung W_nx_mb, W_nx_be, W_nx_fd (Rumus Macrostate Multi-Level)
         numerator = factorial(N_total)
         denominator = 1
@@ -273,7 +282,7 @@ if do:
         W_be_term = 1
         W_fd_term = 1
         is_fd_valid = True
-        
+
         for Nx, gval in zip(Nx_list, g_levels):
             denominator *= factorial(Nx)
             g_term_mb *= (gval ** Nx)
@@ -284,21 +293,21 @@ if do:
         W_nx_mb = (numerator // denominator) * g_term_mb
         W_nx_be = W_be_term
         W_nx_fd = W_fd_term if is_fd_valid else 0
-        
+
         W_display = W_nx_mb if stat == "Maxwell–Boltzmann" else W_nx_be if stat == "Bose–Einstein" else W_nx_fd
-        
+
         # Hitung Entropi
         S = KB * log(W_display) if W_display > 0 else 0
 
         st.header("✅ Hasil Mode Khusus ($N_i$)")
         # Menggunakan sintaks f-string yang benar
         st.info(f"Dihitung untuk Macrostate $\\mathbf{{({', '.join(map(str, Nx_list))})}}$ dengan $N={N_total}$")
-        
+
         col1, col2, col3 = st.columns(3)
         col1.metric("Microstate (MB)", f"{W_nx_mb:,}")
         col2.metric("Microstate (BE)", f"{W_nx_be:,}")
         col3.metric("Microstate (FD)", f"{W_nx_fd:,}")
-        
+
         st.metric("Entropi ($S/k_B$)", f"{S/KB:.4f}")
 
         st.success(f"Microstate $\Omega$ Sesuai Statistik ({stat}): **{W_display:,}**")
@@ -337,6 +346,7 @@ if do:
             else: g_levels_search = [1] * len(E_levels_search)
         else:
             g = int(g_manual)
+            # LOGIKA ASLI: g (total) diulang sebanyak jumlah level energi unik
             g_levels_search = [g] * len(E_levels_search)
             
     if N <= 0 or g <= 0: st.error("N dan g harus positif."); st.stop()
@@ -361,13 +371,14 @@ if do:
             
             if not energy_density:
                 st.error("Tidak ada Microstate yang ditemukan dalam rentang energi ini.")
-                st.stop()
-            
-            E_values = list(energy_density.keys())
-            Omega_values = list(energy_density.values())
-            
-            W = sum(Omega_values)
-            S = KB * log(W) if W > 0 else 0
+                W = 0
+                S = 0
+                E_values = []; Omega_values = []
+            else:
+                E_values = list(energy_density.keys())
+                Omega_values = list(energy_density.values())
+                W = sum(Omega_values)
+                S = KB * log(W) if W > 0 else 0
             
             st.metric("Microstate Total ($\Omega$)", f"{W:,}")
             st.metric("Entropi ($S/k_B$)", f"{S/KB:.4f}")
@@ -387,15 +398,17 @@ if do:
             # Pindah ke Kolom Visual
             with col_visual:
                 st.header("📈 Kerapatan Keadaan Diskrit ($\Omega$ vs $E_{\text{total}}$)")
-                # Baris ini diperbaiki untuk sintaks yang bersih:
-                st.info(f"Menghitung semua Macrostate untuk $E_{{\\text{{total}}}}$ dari {E_min} hingga {E_max}.") 
+                st.info(f"Menghitung semua Macrostate untuk $E_{{\\text{{total}}}}$ dari {E_min} hingga {E_max}.")
                 
-                fig_dos, ax_dos = plt.subplots(figsize=(9, 5))
-                ax_dos.bar([str(e) for e in E_values], Omega_values, color='purple', alpha=0.7)
-                ax_dos.set_xlabel("Energi Total ($E_{\\text{total}}$)")
-                ax_dos.set_ylabel(f"Total Microstate $\Omega(E)$ ({stat})")
-                ax_dos.set_title("Density of States (Kerapatan Keadaan)")
-                st.pyplot(fig_dos)
+                if W > 0:
+                    fig_dos, ax_dos = plt.subplots(figsize=(9, 5))
+                    ax_dos.bar([str(e) for e in E_values], Omega_values, color='purple', alpha=0.7)
+                    ax_dos.set_xlabel("Energi Total ($E_{\\text{total}}$)")
+                    ax_dos.set_ylabel(f"Total Microstate $\Omega(E)$ ({stat})")
+                    ax_dos.set_title("Density of States (Kerapatan Keadaan)")
+                    st.pyplot(fig_dos)
+                else:
+                    st.warning("Tidak ada data untuk diplot karena $\Omega = 0$.")
 
             st.stop()
 
@@ -406,7 +419,7 @@ if do:
         if use_auto_macro:
             macrostates = find_macrostates(N, E_levels_int, int(E_total_input))
             
-            if len(macrostates) == 0: 
+            if len(macrostates) == 0:
                 st.error("Tidak ada makrostate yang memenuhi E_total."); st.stop()
 
             macro_results = []
@@ -487,13 +500,13 @@ if do:
             st.metric("Entropi ($S/k_B$)", f"{S/KB:.4f}")
             st.metric("Total Partikel ($N$)", N)
             
-        # Rumus dan Ringkasan Teknis
-        st.markdown("---")
-        with st.expander("Lihat Rumus Perhitungan Detail"):
-            st.latex(f"Statistik: {stat}")
-            st.latex(r"S = k_B \ln \Omega \quad \text{(Entropi Boltzmann)}")
-            st.latex(formula)
-            st.write(f"Degenerasi Total $g$: {g}")
+            # Rumus dan Ringkasan Teknis
+            st.markdown("---")
+            with st.expander("Lihat Rumus Perhitungan Detail"):
+                st.latex(f"Statistik: {stat}")
+                st.latex(r"S = k_B \ln \Omega \quad \text{(Entropi Boltzmann)}")
+                st.latex(formula)
+                st.write(f"Degenerasi Total $g$: {g}")
 
 
     # ----------------------------------------
@@ -504,24 +517,88 @@ if do:
         
         # Penentuan Distribusi untuk Grafik
         levels, distrib = state_distribution(E_list)
-        if use_auto_macro:
-             st.info(f"Pencarian Selesai: Ditemukan {M} makrostate untuk $E_{{total}}={E_total_input}$.")
         
         # --- TAB GROUP: VISUALISASI & DETAIL ---
         tab_viz, tab_macro, tab_micro = st.tabs(["Visualisasi & Distribusi", "Tabel Makrostate ($N_i$)", "Daftar Mikrostate"])
 
-        # TAB 1: VISUALISASI DAN DISTRIBUSI
+        # TAB 1: VISUALISASI DAN DISTRIBUSI (Fokus pada permintaan user)
         with tab_viz:
-            st.subheader("Grafik Distribusi Energi")
-            st.info(f"Level Energi Unik ($E_i$): {levels} | Distribusi partikel per level ($n_i$): $\\mathbf{{{tuple(distrib)}}}$")
-
-            fig, ax = plt.subplots(figsize=(8, 4))
-            ax.bar([str(lv) for lv in levels], distrib, color='skyblue')
-            ax.set_xlabel("Level Energi $E_i$")
-            ax.set_ylabel("Jumlah Partikel $n_i$")
-            ax.set_title("Populasi Partikel per Level Energi")
-            st.pyplot(fig)
             
+            # --- Perbaikan Logika Tampilan Distribusi ---
+            if use_auto_macro:
+                st.subheader("Grafik Microstate per Macrostate ($\Omega$ vs Konfigurasi)")
+                st.info(f"Visualisasi bobot Microstate ($\Omega$) untuk setiap Macrostate ($n_1, n_2, ...$) yang memenuhi $E_{{\\text{{total}}}}={E_total_input}$.")
+                
+                # Menggunakan data dari Macrostate Otomatis
+                df_macro = pd.DataFrame(macro_results)
+                W_col = 'W_MB' if stat == "Maxwell–Boltzmann" else 'W_BE' if stat == "Bose–Einstein" else 'W_FD'
+                
+                # Mempersiapkan data untuk plotting
+                macro_configs = df_macro['Konfigurasi ($n_1,n_2,...$)'].tolist()
+                microstate_weights = df_macro[W_col].tolist()
+                
+                if sum(microstate_weights) > 0:
+                    fig_macro, ax_macro = plt.subplots(figsize=(10, 5))
+                    ax_macro.bar(macro_configs, microstate_weights, color='red', alpha=0.7)
+                    
+                    ax_macro.set_xlabel("Konfigurasi Macrostate ($n_1, n_2, ...$)")
+                    ax_macro.set_ylabel(f"Bobot Microstate ($\Omega$, {stat})")
+                    ax_macro.set_title(f"Distribusi Bobot $\Omega$ per Macrostate untuk $E_{{total}}={E_total_input}$")
+                    
+                    # Agar label tidak bertumpuk
+                    plt.xticks(rotation=45, ha='right')
+                    plt.tight_layout()
+                    st.pyplot(fig_macro)
+                    
+                    # Tambahkan juga plot populasi n_i vs E_i dari macrostate yang paling dominan
+                    max_w_row = df_macro.loc[df_macro[W_col].idxmax()]
+                    macro_str = max_w_row['Konfigurasi ($n_1,n_2,...$)'].strip('()')
+                    distrib_dominant = [int(n.strip()) for n in macro_str.split(',')]
+                    levels_dominant = E_levels_int
+                    
+                    st.subheader("Populasi Macrostate Dominan")
+                    st.info(f"Populasi ($n_i$) per Level Energi ($E_i$) untuk Macrostate paling dominan: $\\mathbf{{{tuple(distrib_dominant)}}}$")
+                    
+                    fig, ax = plt.subplots(figsize=(8, 4))
+                    ax.bar([str(lv) for lv in levels_dominant], distrib_dominant, color='skyblue')
+                    ax.set_xlabel("Level Energi $E_i$")
+                    ax.set_ylabel("Jumlah Partikel $n_i$")
+                    ax.set_title("Populasi Partikel per Level Energi (Macrostate Dominan)")
+                    st.pyplot(fig)
+                    
+                else:
+                    st.warning("Tidak ada Microstate yang ditemukan untuk memvisualisasikan distribusi Makrostate.")
+
+            elif mode_nx:
+                 # Plot ni vs Ei untuk mode Nx
+                levels = E_levels
+                distrib = Nx_list
+                st.subheader("Grafik Distribusi Energi")
+                st.info(f"Level Energi Unik ($E_i$): {levels} | Distribusi partikel per level ($n_i$): $\\mathbf{{{tuple(distrib)}}}$")
+
+                fig, ax = plt.subplots(figsize=(8, 4))
+                ax.bar([str(lv) for lv in levels], distrib, color='skyblue')
+                ax.set_xlabel("Level Energi $E_i$")
+                ax.set_ylabel("Jumlah Partikel $n_i$")
+                ax.set_title("Distribusi Partikel per Level Energi")
+                st.pyplot(fig)
+            
+            else:
+                # Mode Umum (Default): Plot ni vs Ei dari input awal E_list
+                st.subheader("Grafik Distribusi Energi")
+                st.info(f"Level Energi Unik ($E_i$): {levels} | Distribusi partikel per level ($\\mathbf{{n_i \\, Awal}}$): $\\mathbf{{{tuple(distrib)}}}$")
+
+                if distrib and levels:
+                    fig, ax = plt.subplots(figsize=(8, 4))
+                    ax.bar([str(lv) for lv in levels], distrib, color='skyblue')
+                    ax.set_xlabel("Level Energi $E_i$")
+                    ax.set_ylabel("Jumlah Partikel $n_i$")
+                    ax.set_title("Populasi Partikel per Level Energi")
+                    st.pyplot(fig)
+                else:
+                    st.warning("Gagal memplot distribusi (distrib atau level kosong).")
+            # --- Akhir Perbaikan Logika Tampilan Distribusi ---
+
         # TAB 2: TABEL MAKROSTATE OTOMATIS
         with tab_macro:
             if use_auto_macro:
@@ -535,7 +612,7 @@ if do:
                 df_display = df_macro[['Konfigurasi ($n_1,n_2,...$)', W_col, P_col]].copy()
                 df_display = df_display.rename(columns={W_col: 'Microstate (W)', P_col: 'Probabilitas (P)'})
 
-                st.dataframe(df_display, height=400, use_container_width=True, 
+                st.dataframe(df_display, height=400, use_container_width=True,
                              column_config={"Probabilitas (P)": st.column_config.ProgressColumn("Probabilitas (P)", format="%.4f")})
             else:
                 st.warning("Mode ini menampilkan daftar semua solusi $N_i$. Aktifkan **Makrostate Otomatis** di sidebar.")
@@ -544,7 +621,7 @@ if do:
         with tab_micro:
             st.subheader("Daftar Konfigurasi Mikro")
             # Pastikan micro_list ada dan mode Makrostate Otomatis TIDAK aktif
-            if 'micro_list' in locals() and not use_auto_macro and not use_all_energy_plot and micro_list is not None:
+            if not use_auto_macro and not use_all_energy_plot and 'micro_list' in locals() and micro_list is not None:
                 st.info(f"Menampilkan {len(micro_list):,} mikrostate (total = {total:,})")
                 df_micro = pd.DataFrame({
                     "No.": range(1, len(micro_list) + 1),
@@ -552,4 +629,4 @@ if do:
                 })
                 st.data_editor(df_micro, use_container_width=True, hide_index=True)
             else:
-                 st.warning("Daftar Mikrostate terlalu besar (batas 5000), mode Otomatis/Plot Energi sedang aktif.")
+                st.warning("Daftar Mikrostate terlalu besar (batas 5000), mode Otomatis/Plot Energi sedang aktif, atau mode umum tidak diaktifkan.")
